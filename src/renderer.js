@@ -42,6 +42,75 @@ async function verifyStoredBooks(showAlert){
   }
 }
 
+function parseCue(content){
+  // Very small .cue parser: extracts track titles and INDEX 01 times
+  const lines = content.split(/\r?\n/).map(l=>l.trim());
+  const chapters = [];
+  let currentTitle = null;
+  for(let i=0;i<lines.length;i++){
+    const l = lines[i];
+    if(!l) continue;
+    // Track title
+    const titleMatch = l.match(/^TITLE\s+"(.+)"$/i);
+    if(titleMatch){
+      currentTitle = titleMatch[1];
+      continue;
+    }
+    const indexMatch = l.match(/^INDEX\s+01\s+(\d+):(\d+):(\d+)$/i);
+    if(indexMatch){
+      const m = parseInt(indexMatch[1],10);
+      const s = parseInt(indexMatch[2],10);
+      const f = parseInt(indexMatch[3],10);
+      const seconds = m*60 + s + (f/75);
+      chapters.push({title: currentTitle || `Capítulo ${chapters.length+1}`, time: seconds, listened:false});
+      currentTitle = null;
+      continue;
+    }
+  }
+  return chapters;
+}
+
+async function loadChaptersForBook(b){
+  if(!b || !b.filePath) { b.chapters = []; return; }
+  const cuePath = await window.electronAPI.findCue(b.filePath);
+  if(!cuePath){ b.chapters = []; return; }
+  const content = await window.electronAPI.readFile(cuePath);
+  if(!content){ b.chapters = []; return; }
+  b.chapters = parseCue(content);
+}
+
+function renderChapters(b){
+  const list = document.getElementById('chapters-list');
+  const msg = document.getElementById('chapters-message');
+  list.innerHTML='';
+  if(!b || !b.chapters || b.chapters.length===0){
+    msg.textContent = 'Para dividir en capítulos, cargá un archivo .cue junto al audiolibro (misma carpeta).';
+    return;
+  }
+  msg.textContent = '';
+  b.chapters.forEach((c,idx)=>{
+    const li = document.createElement('li');
+    li.style.padding='6px 8px';
+    li.style.borderBottom='1px solid var(--bg3)';
+    li.style.display='flex';
+    li.style.alignItems='center';
+    li.style.justifyContent='space-between';
+    const left = document.createElement('div');
+    left.style.cursor='pointer';
+    left.textContent = `${c.title} — ${fmtTime(c.time)}`;
+    left.onclick = ()=>{ if(!b) return; audio.currentTime = c.time; audio.play(); currentBook = b; updatePlayerUI(); };
+    const right = document.createElement('div');
+    const toggle = document.createElement('input');
+    toggle.type='checkbox';
+    toggle.checked = !!c.listened;
+    toggle.onchange = ()=>{ c.listened = toggle.checked; save(); renderBooks(); };
+    right.appendChild(toggle);
+    li.appendChild(left);
+    li.appendChild(right);
+    list.appendChild(li);
+  });
+}
+
 function fmtTime(s){
   if(!s||isNaN(s)) return '0:00';
   const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=Math.floor(s%60);
@@ -170,6 +239,10 @@ function selectBook(id){
     audio.play();
     document.getElementById('play-btn').disabled=false;
     updatePlayerUI();
+    // load chapters if any and render
+    loadChaptersForBook(b).then(()=>{
+      renderChapters(b);
+    });
     b.lastPlayed = Date.now();
     save();
   });
