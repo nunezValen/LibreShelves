@@ -3,6 +3,9 @@ const path = require("path");
 const fs = require("fs");
 
 function createWindow() {
+  // choose an icon: prefer build/icons/app.ico (created when packaging), fallback to root logo.png
+  const defaultIcon = path.join(__dirname, 'logo.png');
+  const packagedIcon = path.join(__dirname, 'build', 'icons', 'app.ico');
   const win = new BrowserWindow({
     width: 1500,
     height: 900,
@@ -24,6 +27,13 @@ function createWindow() {
       nodeIntegration: false
     }
   });
+  // set window icon if available (Windows uses .ico)
+  try {
+    const iconPath = fs.existsSync(packagedIcon) ? packagedIcon : (fs.existsSync(defaultIcon) ? defaultIcon : null);
+    if (iconPath) win.setIcon(iconPath);
+  } catch (e) {
+    // ignore
+  }
 
   win.loadFile(path.join(__dirname, "src", "index.html"));
 }

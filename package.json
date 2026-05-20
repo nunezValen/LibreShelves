@@ -4,11 +4,28 @@
   "description": "Audiobook desktop player",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "make-icon": "node scripts/make-icon.js",
+    "package-dir": "npm run make-icon && electron-builder --win dir --x64"
   },
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^37.0.0"
+    "electron": "^37.0.0",
+    "electron-builder": "^24.6.0",
+    "electron-packager": "^17.1.2",
+    "png-to-ico": "^1.0.0"
+  },
+  "build": {
+    "appId": "com.tu.librebook",
+    "directories": {
+      "buildResources": "build"
+    },
+    "win": {
+      "target": [
+        "dir"
+      ],
+      "icon": "build/icons/app.ico"
+    }
   }
 }
