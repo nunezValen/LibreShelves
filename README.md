@@ -2,6 +2,8 @@
 
 LibreShelves es una aplicación de escritorio para organizar y reproducir audiolibros, con division con capitulos y poder personalizar la portada. La idea surgio porque no pague audible y necesitaba algo parecido(Pero para audiolibros no originales :p ) 
 
+Para instalar ir a releases y descargar el .exe . Si dice que windows protegio tu pc darle a mas informacion y ejecutar. Juro que no es un virus jeje
+
 ## Características
 
 - Biblioteca de audiolibros
