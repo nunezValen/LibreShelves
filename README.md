@@ -1,6 +1,6 @@
-# LibreBook
+# LibreShelves
 
-LibreBook es una aplicación de escritorio desarrollada con Electron para organizar y reproducir audiolibros de manera elegante y minimalista.
+LibreShelves es una aplicación de escritorio desarrollada con Electron para organizar y reproducir audiolibros de manera elegante y minimalista.
 
 ## Características
 

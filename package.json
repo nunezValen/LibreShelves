@@ -1,5 +1,5 @@
 {
-  "name": "librebook",
+  "name": "LibreShelves",
   "version": "1.0.0",
   "description": "Audiobook desktop player",
   "main": "main.js",
@@ -17,7 +17,7 @@
     "png-to-ico": "^1.0.0"
   },
   "build": {
-    "appId": "com.tu.librebook",
+    "appId": "com.tu.LibreShelves",
     "directories": {
       "buildResources": "build"
     },
