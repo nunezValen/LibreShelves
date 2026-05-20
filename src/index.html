@@ -41,8 +41,7 @@
           Terminados
         </div>
 
-        <div class="sidebar-section">Géneros</div>
-        <div id="genre-list"></div>
+        <!-- Géneros removed: filtering is only by search (title/author) -->
       </nav>
 
       <div class="sidebar-bottom">
@@ -93,7 +92,7 @@
       <div id="books-container"></div>
     </main>
 
-    <div class="player" id="player-bar">
+        <div class="player" id="player-bar">
       <div class="player-book">
         <div class="player-mini-cover" id="player-cover">🎧</div>
         <div class="player-book-info">
@@ -125,6 +124,7 @@
       <div class="player-right">
         <div class="eq" id="eq-anim"><span></span><span></span><span></span></div>
         <button class="speed-btn" id="speed-btn" onclick="cycleSpeed()">1×</button>
+        <button class="speed-btn" id="delete-btn" style="margin-left:8px;background:var(--red);color:#fff" onclick="deleteCurrentBook()">Eliminar</button>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text3)"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
         <input type="range" class="vol-slider" id="vol-slider" min="0" max="1" step="0.01" value="1" oninput="setVolume(this.value)">
       </div>
@@ -152,6 +152,14 @@
       </div>
 
       <div class="form-group">
+        <label class="form-label">Portada (imagen) — opcional</label>
+        <input type="file" id="cover-input" accept="image/*" style="display:none" onchange="onCoverSelect(this)">
+        <button class="file-btn" onclick="document.getElementById('cover-input').click()" id="cover-label">
+          🖼️ Elegir portada...
+        </button>
+      </div>
+
+      <div class="form-group">
         <label class="form-label">Título</label>
         <input class="form-input" id="inp-title" placeholder="Título del libro">
       </div>
@@ -162,8 +170,7 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">Género</label>
-        <input class="form-input" id="inp-genre" placeholder="Ficción, Historia, Ciencia...">
+        <!-- genre removed: filtering is by search only -->
       </div>
 
       <div class="form-group">

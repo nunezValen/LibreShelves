@@ -15,7 +15,7 @@ async function checkFileExists(filePath){
 
 function load(){
   try { books = JSON.parse(localStorage.getItem('audioshelf_books')||'[]'); } catch(e){ books=[]; }
-  books = books.map(b=>({...b, filePath: b.filePath || null, missingFile: false}));
+  books = books.map(b=>({...b, filePath: b.filePath || null, missingFile: false, chapters: b.chapters || []}));
 }
 
 function save(){
@@ -71,12 +71,19 @@ function parseCue(content){
 }
 
 async function loadChaptersForBook(b){
-  if(!b || !b.filePath) { b.chapters = []; return; }
+  if(!b || !b.filePath) { b.chapters = b.chapters || []; return; }
   const cuePath = await window.electronAPI.findCue(b.filePath);
-  if(!cuePath){ b.chapters = []; return; }
+  if(!cuePath){ b.chapters = b.chapters || []; return; }
   const content = await window.electronAPI.readFile(cuePath);
-  if(!content){ b.chapters = []; return; }
-  b.chapters = parseCue(content);
+  if(!content){ b.chapters = b.chapters || []; return; }
+  const parsed = parseCue(content);
+  // preserve listened flags if we already had chapters saved
+  if (b.chapters && Array.isArray(b.chapters) && b.chapters.length>0){
+    for(let i=0;i<Math.min(b.chapters.length, parsed.length); i++){
+      parsed[i].listened = !!b.chapters[i].listened;
+    }
+  }
+  b.chapters = parsed;
 }
 
 function renderChapters(b){
@@ -103,7 +110,21 @@ function renderChapters(b){
     const toggle = document.createElement('input');
     toggle.type='checkbox';
     toggle.checked = !!c.listened;
-    toggle.onchange = ()=>{ c.listened = toggle.checked; save(); renderBooks(); };
+    toggle.onchange = ()=>{
+      c.listened = toggle.checked;
+      save();
+      renderBooks();
+      // if checked, jump to next chapter
+      if(toggle.checked){
+        const next = b.chapters[idx+1];
+        if(next){
+          audio.currentTime = next.time;
+          audio.play();
+          currentBook = b;
+          updatePlayerUI();
+        }
+      }
+    };
     right.appendChild(toggle);
     li.appendChild(left);
     li.appendChild(right);
@@ -152,7 +173,7 @@ function renderBooks(){
 function cardHTML(b){
   const p=pct(b);
   const isPlaying = currentBook && currentBook.id===b.id;
-  const coverContent = `<div class="book-cover-placeholder">${b.emoji||'📚'}</div>`;
+  const coverContent = b.coverPath ? `<img class="book-cover-img" src="${toFileUrl(b.coverPath)}" onerror="this.style.display='none'">` : `<div class="book-cover-placeholder">${b.emoji||'📚'}</div>`;
 
   return `<div class="book-card" onclick="selectBook('${b.id}')">
     <div class="book-cover-wrap">
@@ -179,25 +200,14 @@ function rowHTML(b,i){
     <div class="book-row-cover">${b.emoji||'📚'}</div>
     <div class="book-row-info">
       <div class="book-row-title">${b.title}</div>
-      <div class="book-row-author">${b.author||''} ${b.genre?'· '+b.genre:''}</div>
+      <div class="book-row-author">${b.author||''}</div>
     </div>
     <div class="book-row-progress"><div class="book-row-progress-fill" style="width:${p}%"></div></div>
     <div class="book-row-dur">${b.duration?fmtTime(b.duration):'—'}</div>
   </div>`;
 }
 
-function renderGenres(){
-  const counts={};
-  books.forEach(b=>{ const g=b.genre||'Sin género'; counts[g]=(counts[g]||0)+1; });
-  document.getElementById('genre-list').innerHTML = Object.entries(counts).map(([g,c])=>
-    `<div class="genre-item" onclick="filterGenre('${g}')"><span>${g}</span><span class="genre-count">${c}</span></div>`
-  ).join('');
-}
-
-function filterGenre(g){
-  document.getElementById('search-input').value=g;
-  setView('library',document.querySelector('[data-view="library"]'));
-}
+// genres removed: filtering is only by search (title/author)
 
 function setView(v, el){
   currentView=v;
@@ -248,21 +258,47 @@ function selectBook(id){
   });
 }
 
+function deleteCurrentBook(){
+  if(!currentBook) return;
+  if(!confirm(`Eliminar "${currentBook.title}" de la biblioteca?`)) return;
+  const idx = books.findIndex(b=>b.id===currentBook.id);
+  if(idx>=0){
+    books.splice(idx,1);
+    save();
+    currentBook = null;
+    renderBooks();
+    // clear player UI
+    document.getElementById('player-title').textContent='Ningún libro seleccionado';
+    document.getElementById('player-author').textContent='';
+    document.getElementById('player-cover').innerHTML='🎧';
+    document.getElementById('hero-area').classList.remove('visible');
+  }
+}
+
 function updatePlayerUI(){
   const b=currentBook;
   if(!b) return;
   document.getElementById('player-title').textContent=b.title;
   document.getElementById('player-author').textContent=b.author||'';
   const cover=document.getElementById('player-cover');
-  cover.innerHTML=b.emoji||'🎧';
+  if(b.coverPath){
+    cover.innerHTML = `<img src="${toFileUrl(b.coverPath)}" style="width:100%;height:100%;object-fit:cover">`;
+  } else {
+    cover.innerHTML = b.emoji||'🎧';
+  }
 
   const heroArea=document.getElementById('hero-area');
   heroArea.classList.add('visible');
   document.getElementById('hero-title').textContent=b.title;
   document.getElementById('hero-author').textContent=b.author||'';
   const heroCover=document.getElementById('hero-cover');
-  heroCover.innerHTML=b.emoji||'🎧';
-  heroCover.className='hero-cover-placeholder';
+  if(b.coverPath){
+    heroCover.innerHTML = `<img src="${toFileUrl(b.coverPath)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`;
+    heroCover.className='hero-cover-wrap';
+  } else {
+    heroCover.innerHTML=b.emoji||'🎧';
+    heroCover.className='hero-cover-placeholder';
+  }
   renderBooks();
 }
 
@@ -344,6 +380,7 @@ audio.addEventListener('ended',()=>{
 });
 
 let selectedEmoji='📚', pendingFile=null;
+let pendingCoverFile = null;
 
 function openAddModal(){
   document.getElementById('add-modal').classList.add('active');
@@ -354,10 +391,12 @@ function openAddModal(){
 function closeModal(){
   document.getElementById('add-modal').classList.remove('active');
   pendingFile=null;
+  pendingCoverFile = null;
   document.getElementById('file-label').textContent='📂 Elegir archivo...';
+  document.getElementById('cover-label').textContent='🖼️ Elegir portada...';
   document.getElementById('inp-title').value='';
   document.getElementById('inp-author').value='';
-  document.getElementById('inp-genre').value='';
+  // genre input removed
 }
 
 function pickEmoji(e,el){
@@ -375,6 +414,13 @@ function onFileSelect(input){
     let name=f.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' ');
     document.getElementById('inp-title').value=name;
   }
+}
+
+function onCoverSelect(input){
+  const f=input.files[0];
+  if(!f) return;
+  pendingCoverFile = f;
+  document.getElementById('cover-label').textContent = '✅ '+f.name;
 }
 
 async function resolvePendingFilePath(file){
@@ -403,7 +449,6 @@ async function saveBook(){
   const b={
     id, title,
     author:document.getElementById('inp-author').value.trim(),
-    genre:document.getElementById('inp-genre').value.trim(),
     emoji:selectedEmoji,
     position:0,
     duration:0,
@@ -411,21 +456,26 @@ async function saveBook(){
     lastPlayed:0,
     addedAt:Date.now(),
     filePath,
+    coverPath: null,
     missingFile: false
   };
+
+  // resolve cover path if provided
+  if(pendingCoverFile){
+    const coverPath = await resolvePendingFilePath(pendingCoverFile);
+    if(coverPath) b.coverPath = coverPath;
+  }
 
   const tmpAudio=new Audio(toFileUrl(filePath));
   tmpAudio.addEventListener('loadedmetadata',()=>{
     b.duration=tmpAudio.duration;
     save();
     renderBooks();
-    renderGenres();
   });
 
   books.push(b);
   save();
   renderBooks();
-  renderGenres();
   closeModal();
 }
 
@@ -457,6 +507,5 @@ load();
 verifyStoredBooks(true).then(()=>{
   save();
   renderBooks();
-  renderGenres();
   document.getElementById('eq-anim').classList.add('paused');
 });
