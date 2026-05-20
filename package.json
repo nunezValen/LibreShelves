@@ -4,10 +4,11 @@
   "description": "Audiobook desktop player",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "make-icon": "node scripts/make-icon.js",
-    "package-dir": "npm run make-icon && electron-builder --win dir --x64"
-  },
+  "start": "electron .",
+  "make-icon": "node scripts/make-icon.js",
+  "package-dir": "npm run make-icon && electron-builder --win dir --x64",
+  "dist": "npm run make-icon && electron-builder --win nsis --x64"
+},
   "author": "",
   "license": "MIT",
   "devDependencies": {
@@ -17,15 +18,17 @@
     "png-to-ico": "^1.0.0"
   },
   "build": {
-    "appId": "com.tu.LibreShelves",
-    "directories": {
-      "buildResources": "build"
-    },
-    "win": {
-      "target": [
-        "dir"
-      ],
-      "icon": "build/icons/app.ico"
-    }
+  "appId": "com.tu.LibreShelves",
+  "directories": {
+    "buildResources": "build"
+  },
+  "win": {
+    "target": "nsis",
+    "icon": "build/icons/app.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
   }
+}
 }
