@@ -175,9 +175,16 @@ function cardHTML(b){
   const isPlaying = currentBook && currentBook.id===b.id;
   const coverContent = b.coverPath ? `<img class="book-cover-img" src="${toFileUrl(b.coverPath)}" onerror="this.style.display='none'">` : `<div class="book-cover-placeholder">${b.emoji||'📚'}</div>`;
 
-  return `<div class="book-card" onclick="selectBook('${b.id}')">
+  return `<div class="book-card" onclick="selectBook('${b.id}')" oncontextmenu="openCardMenu('${b.id}', event); return false;">
     <div class="book-cover-wrap">
       ${coverContent}
+      <button class="card-menu-btn" onclick="openCardMenu('${b.id}', event); event.stopPropagation();">⋯</button>
+      <div class="card-menu" id="card-menu-${b.id}">
+        <button onclick="openEditModal('${b.id}', event); event.stopPropagation();">Editar</button>
+        <button onclick="quickChangeCover('${b.id}', event); event.stopPropagation();">Cambiar portada</button>
+        <button onclick="quickLinkCue('${b.id}', event); event.stopPropagation();">Vincular .cue</button>
+        <button onclick="deleteBookQuick('${b.id}', event); event.stopPropagation();" style="color:var(--red)">Eliminar</button>
+      </div>
       <div class="book-card-overlay">
         <div class="play-circle">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="#0d0f14"><polygon points="5,3 19,12 5,21"/></svg>
@@ -273,6 +280,66 @@ function deleteCurrentBook(){
     document.getElementById('player-cover').innerHTML='🎧';
     document.getElementById('hero-area').classList.remove('visible');
   }
+}
+
+function deleteBookById(id){
+  const idx = books.findIndex(b=>b.id===id);
+  if(idx>=0){
+    books.splice(idx,1);
+    save();
+    if(currentBook && currentBook.id===id) currentBook = null;
+    renderBooks();
+    document.getElementById('player-title').textContent='Ningún libro seleccionado';
+    document.getElementById('player-author').textContent='';
+    document.getElementById('player-cover').innerHTML='🎧';
+    document.getElementById('hero-area').classList.remove('visible');
+  }
+}
+
+function deleteBookFromModal(){
+  if(!selectedEditBookId) return;
+  if(!confirm('Eliminar este libro de la biblioteca?')) return;
+  deleteBookById(selectedEditBookId);
+  closeEditModal();
+}
+
+async function saveEditBook(){
+  if(!selectedEditBookId) return;
+  const b = books.find(x=>x.id===selectedEditBookId);
+  if(!b) return;
+  const newTitle = document.getElementById('edit-inp-title').value.trim();
+  const newAuthor = document.getElementById('edit-inp-author').value.trim();
+  if(newTitle) b.title = newTitle;
+  b.author = newAuthor;
+  // cover
+  if(pendingEditCoverFile){
+    const cp = await resolvePendingFilePath(pendingEditCoverFile);
+    if(cp) b.coverPath = cp;
+  }
+  // cue
+  if(pendingEditCueFile){
+    const cuePath = await resolvePendingFilePath(pendingEditCueFile);
+    if(cuePath){
+      const content = await window.electronAPI.readFile(cuePath);
+      if(content){
+        const parsed = parseCue(content);
+        // preserve listened flags where possible
+        if(b.chapters && b.chapters.length>0){
+          for(let i=0;i<Math.min(b.chapters.length, parsed.length); i++) parsed[i].listened = !!b.chapters[i].listened;
+        }
+        b.chapters = parsed;
+      }
+    }
+  }
+  // save and refresh
+  save();
+  renderBooks();
+  if(currentBook && currentBook.id===b.id){
+    currentBook = b;
+    updatePlayerUI();
+    renderChapters(b);
+  }
+  closeEditModal();
 }
 
 function updatePlayerUI(){
@@ -381,11 +448,84 @@ audio.addEventListener('ended',()=>{
 
 let selectedEmoji='📚', pendingFile=null;
 let pendingCoverFile = null;
+let selectedEditBookId = null;
+let pendingEditCoverFile = null;
+let pendingEditCueFile = null;
 
 function openAddModal(){
   document.getElementById('add-modal').classList.add('active');
   const grid=document.getElementById('emoji-grid');
   grid.innerHTML=EMOJIS.map(e=>`<div class="emoji-opt${e===selectedEmoji?' selected':''}" onclick="pickEmoji('${e}',this)">${e}</div>`).join('');
+}
+
+function openEditModal(id, event){
+  const b = books.find(x=>x.id===id);
+  if(!b) return;
+  selectedEditBookId = id;
+  pendingEditCoverFile = null;
+  pendingEditCueFile = null;
+  document.getElementById('edit-inp-title').value = b.title || '';
+  document.getElementById('edit-inp-author').value = b.author || '';
+  document.getElementById('edit-cover-label').textContent = b.coverPath ? '📌 Portada vinculada' : '🖼️ Elegir portada...';
+  document.getElementById('edit-cue-label').textContent = (b.chapters && b.chapters.length>0) ? `${b.chapters.length} capítulos` : '📑 Elegir .cue...';
+  document.getElementById('edit-modal').classList.add('active');
+}
+
+function toggleCardMenu(id, event){
+  // close others
+  document.querySelectorAll('.card-menu').forEach(m=>m.classList.remove('active'));
+  const el = document.getElementById(`card-menu-${id}`);
+  if(!el) return;
+  el.classList.toggle('active');
+}
+
+function openCardMenu(id, event){
+  if(event){
+    event.preventDefault && event.preventDefault();
+    event.stopPropagation && event.stopPropagation();
+  }
+  // close others
+  document.querySelectorAll('.card-menu').forEach(m=>m.classList.remove('active'));
+  const el = document.getElementById(`card-menu-${id}`);
+  if(!el) return;
+  el.classList.add('active');
+}
+
+function closeAllCardMenus(){
+  document.querySelectorAll('.card-menu').forEach(m=>m.classList.remove('active'));
+}
+
+function quickChangeCover(id, event){
+  selectedEditBookId = id;
+  // trigger hidden input
+  document.getElementById('edit-cover-input').click();
+  closeAllCardMenus();
+}
+
+function quickLinkCue(id, event){
+  selectedEditBookId = id;
+  document.getElementById('edit-cue-input').click();
+  closeAllCardMenus();
+}
+
+function deleteBookQuick(id, event){
+  if(!confirm('Eliminar este libro de la biblioteca?')) return;
+  deleteBookById(id);
+  closeAllCardMenus();
+}
+
+// close menus when clicking outside
+document.addEventListener('click', (e)=>{
+  closeAllCardMenus();
+});
+
+function closeEditModal(){
+  selectedEditBookId = null;
+  pendingEditCoverFile = null;
+  pendingEditCueFile = null;
+  document.getElementById('edit-modal').classList.remove('active');
+  document.getElementById('edit-cover-label').textContent = '🖼️ Elegir portada...';
+  document.getElementById('edit-cue-label').textContent = '📑 Elegir .cue...';
 }
 
 function closeModal(){
@@ -421,6 +561,61 @@ function onCoverSelect(input){
   if(!f) return;
   pendingCoverFile = f;
   document.getElementById('cover-label').textContent = '✅ '+f.name;
+}
+
+function onEditCoverSelect(input){
+  const f=input.files[0];
+  if(!f) return;
+  pendingEditCoverFile = f;
+  document.getElementById('edit-cover-label').textContent = '✅ '+f.name;
+  // If invoked from quick menu and modal closed, apply immediately
+  if(selectedEditBookId && !document.getElementById('edit-modal').classList.contains('active')){
+    const id = selectedEditBookId;
+    const file = pendingEditCoverFile;
+    selectedEditBookId = id;
+    resolvePendingFilePath(file).then((coverPath)=>{
+      if(coverPath){
+        const b = books.find(x=>x.id===id);
+        if(b){ b.coverPath = coverPath; save(); renderBooks(); if(currentBook && currentBook.id===b.id){ updatePlayerUI(); } }
+      }
+      pendingEditCoverFile = null;
+      selectedEditBookId = null;
+    });
+  }
+}
+
+function onEditCueSelect(input){
+  const f=input.files[0];
+  if(!f) return;
+  pendingEditCueFile = f;
+  document.getElementById('edit-cue-label').textContent = '✅ '+f.name;
+  // If invoked from quick menu (selectedEditBookId set and modal closed), apply immediately
+  if(selectedEditBookId && !document.getElementById('edit-modal').classList.contains('active')){
+    const id = selectedEditBookId;
+    const file = pendingEditCueFile;
+    selectedEditBookId = id; // ensure set
+    // apply
+    resolvePendingFilePath(file).then(async (cuePath)=>{
+      if(cuePath){
+        const content = await window.electronAPI.readFile(cuePath);
+        if(content){
+          const parsed = parseCue(content);
+          const b = books.find(x=>x.id===id);
+          if(b){
+            if(b.chapters && b.chapters.length>0){
+              for(let i=0;i<Math.min(b.chapters.length, parsed.length); i++) parsed[i].listened = !!b.chapters[i].listened;
+            }
+            b.chapters = parsed;
+            save();
+            if(currentBook && currentBook.id===b.id){ renderChapters(b); }
+            renderBooks();
+          }
+        }
+      }
+      pendingEditCueFile = null;
+      selectedEditBookId = null;
+    });
+  }
 }
 
 async function resolvePendingFilePath(file){

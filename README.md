@@ -39,7 +39,7 @@ LibreBook es una aplicación de escritorio desarrollada con Electron para organi
 Clonar el repositorio:
 
 ```bash
-git clone https://github.com/usuario/audioshelf.git
+git clone https://github.com/nunezValen/LibreShelves
 ```
 
 Instalar dependencias:

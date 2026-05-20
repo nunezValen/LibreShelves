@@ -185,6 +185,40 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+      <h3>Editar audiolibro</h3>
+
+      <div class="form-group">
+        <label class="form-label">Título</label>
+        <input class="form-input" id="edit-inp-title" placeholder="Título del libro">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Autor</label>
+        <input class="form-input" id="edit-inp-author" placeholder="Autor">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Portada (imagen)</label>
+        <input type="file" id="edit-cover-input" accept="image/*" style="display:none" onchange="onEditCoverSelect(this)">
+        <button class="file-btn" onclick="document.getElementById('edit-cover-input').click()" id="edit-cover-label">🖼️ Elegir portada...</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Vincular archivo .cue</label>
+        <input type="file" id="edit-cue-input" accept=".cue" style="display:none" onchange="onEditCueSelect(this)">
+        <button class="file-btn" onclick="document.getElementById('edit-cue-input').click()" id="edit-cue-label">📑 Elegir .cue...</button>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeEditModal()">Cancelar</button>
+        <button class="btn-save" onclick="saveEditBook()">Guardar</button>
+        <button class="btn-cancel" style="background:var(--red);color:#fff;margin-left:8px" onclick="deleteBookFromModal()">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
   <audio id="audio-el"></audio>
 </body>
 </html>
