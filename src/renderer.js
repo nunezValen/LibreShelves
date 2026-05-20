@@ -17,7 +17,7 @@ async function checkFileExists(filePath){
 }
 
 function load(){
-  try { books = JSON.parse(localStorage.getItem('audioshelf_books')||'[]'); } catch(e){ books=[]; }
+  try { books = JSON.parse(localStorage.getItem('libreshelves_books')||'[]'); } catch(e){ books=[]; }
   books = books.map(b=>{
     const { emoji, ...rest } = b;
     return {...rest, filePath: b.filePath || null, missingFile: false, chapters: b.chapters || []};
@@ -29,7 +29,7 @@ function save(){
     const {missingFile, emoji, ...rest} = b;
     return rest;
   });
-  localStorage.setItem('audioshelf_books', JSON.stringify(toSave));
+  localStorage.setItem('libreshelves_books', JSON.stringify(toSave));
 }
 
 async function verifyStoredBooks(showAlert){
