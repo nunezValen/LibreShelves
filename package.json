@@ -1,0 +1,14 @@
+{
+  "name": "librebook",
+  "version": "1.0.0",
+  "description": "Audiobook desktop player",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^37.0.0"
+  }
+}

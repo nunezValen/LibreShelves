@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AudioShelf</title>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./renderer.js" defer></script>
+</head>
+<body>
+<div class="titlebar">
+  <div class="titlebar-drag"></div>
+
+  <div class="window-controls">
+    <button onclick="window.electronAPI.minimize()">─</button>
+    <button onclick="window.electronAPI.maximize()">□</button>
+    <button class="close-btn" onclick="window.electronAPI.close()">✕</button>
+  </div>
+</div>
+  <div class="app" id="app">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <h1>AudioShelf</h1>
+        <span>tu biblioteca</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item active" data-view="library" onclick="setView('library',this)">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Biblioteca
+        </div>
+
+        <div class="nav-item" data-view="recents" onclick="setView('recents',this)">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+          Recientes
+        </div>
+
+        <div class="nav-item" data-view="finished" onclick="setView('finished',this)">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Terminados
+        </div>
+
+        <div class="sidebar-section">Géneros</div>
+        <div id="genre-list"></div>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <button class="add-btn" onclick="openAddModal()">+ Agregar libro</button>
+      </div>
+    </aside>
+
+    <main class="main" id="main-panel">
+      <div class="hero" id="hero-area">
+        <div class="hero-bg" id="hero-bg"></div>
+        <div class="hero-content">
+          <div class="hero-cover-placeholder" id="hero-cover">🎧</div>
+          <div class="hero-info">
+            <div class="hero-label">escuchando ahora</div>
+            <div class="hero-title" id="hero-title">—</div>
+            <div class="hero-author" id="hero-author"></div>
+            <div class="hero-progress-bar"><div class="hero-progress-fill" id="hero-prog" style="width:0%"></div></div>
+            <div class="hero-time" id="hero-time">0:00 / 0:00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div>
+            <div class="section-title" id="view-title">Mi Biblioteca</div>
+            <div class="book-count" id="book-count"></div>
+          </div>
+        </div>
+
+        <div class="toolbar-right">
+          <input class="search-box" placeholder="Buscar..." id="search-input" oninput="renderBooks()">
+          <div class="view-toggle">
+            <button class="view-btn active" id="btn-grid" onclick="setLayout('grid',this)" title="Grilla">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            </button>
+            <button class="view-btn" id="btn-list" onclick="setLayout('list',this)" title="Lista">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="books-container"></div>
+    </main>
+
+    <div class="player" id="player-bar">
+      <div class="player-book">
+        <div class="player-mini-cover" id="player-cover">🎧</div>
+        <div class="player-book-info">
+          <div class="player-book-title" id="player-title">Ningún libro seleccionado</div>
+          <div class="player-book-author" id="player-author"></div>
+        </div>
+      </div>
+
+      <div class="player-center">
+        <div class="controls">
+          <button class="ctrl-btn" onclick="skip(-30)" title="−30s">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.65"/><text x="8" y="17" fill="currentColor" stroke="none" font-size="6" font-family="monospace">30</text></svg>
+          </button>
+          <button class="ctrl-btn primary" id="play-btn" onclick="togglePlay()" disabled>
+            <svg id="play-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+          </button>
+          <button class="ctrl-btn" onclick="skip(30)" title="+30s">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-3.65"/><text x="8" y="17" fill="currentColor" stroke="none" font-size="6" font-family="monospace">30</text></svg>
+          </button>
+        </div>
+
+        <div class="progress-area">
+          <span class="time-label" id="cur-time">0:00</span>
+          <input type="range" class="seek-bar" id="seek-bar" min="0" max="100" value="0" step="0.1" oninput="seeking=true" onchange="seekTo(this.value)">
+          <span class="time-label" id="tot-time">0:00</span>
+        </div>
+      </div>
+
+      <div class="player-right">
+        <div class="eq" id="eq-anim"><span></span><span></span><span></span></div>
+        <button class="speed-btn" id="speed-btn" onclick="cycleSpeed()">1×</button>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text3)"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        <input type="range" class="vol-slider" id="vol-slider" min="0" max="1" step="0.01" value="1" oninput="setVolume(this.value)">
+      </div>
+    </div>
+  </div>
+
+  <div class="drop-overlay" id="drop-overlay">
+    <div class="drop-box">
+      <div style="font-size:48px;margin-bottom:16px">📚</div>
+      <h2>Soltar archivo de audio</h2>
+      <p>MP3, M4A, M4B, OGG, WAV, FLAC, AAC</p>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="add-modal">
+    <div class="modal">
+      <h3>Agregar audiolibro</h3>
+
+      <div class="form-group">
+        <label class="form-label">Archivo de audio</label>
+        <input type="file" id="file-input" accept="audio/*,.m4b" style="display:none" onchange="onFileSelect(this)">
+        <button class="file-btn" onclick="document.getElementById('file-input').click()" id="file-label">
+          📂 Elegir archivo...
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Título</label>
+        <input class="form-input" id="inp-title" placeholder="Título del libro">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Autor</label>
+        <input class="form-input" id="inp-author" placeholder="Autor">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Género</label>
+        <input class="form-input" id="inp-genre" placeholder="Ficción, Historia, Ciencia...">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Ícono de portada</label>
+        <div class="emoji-grid" id="emoji-grid"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+        <button class="btn-save" onclick="saveBook()">Agregar</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audio-el"></audio>
+</body>
+</html>
