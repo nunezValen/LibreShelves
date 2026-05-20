@@ -178,13 +178,13 @@ html,body{
 .ctrl-btn.primary:disabled{background:var(--bg4);color:var(--text3);cursor:default}
 .progress-area{width:100%;display:flex;align-items:center;gap:10px}
 .time-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);white-space:nowrap}
-.seek-bar{flex:1;height:3px;background:var(--bg4);border-radius:2px;cursor:pointer;position:relative;-webkit-appearance:none;outline:none;border:none}
+.seek-bar{flex:1;height:3px;background:var(--bg4);border-radius:2px;cursor:pointer;position:relative;appearance:none;-webkit-appearance:none;outline:none;border:none}
 .seek-bar::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--accent);cursor:pointer;margin-top:-4.5px}
 .seek-bar::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:var(--bg4)}
 .player-right{width:220px;display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-shrink:0}
 .speed-btn{background:var(--bg3);border:1px solid var(--border);border-radius:3px;color:var(--text2);font-size:11px;font-family:'DM Mono',monospace;padding:4px 8px;cursor:pointer}
 .speed-btn:hover{color:var(--accent);border-color:var(--accent)}
-.vol-slider{width:80px;height:3px;-webkit-appearance:none;background:var(--bg4);border-radius:2px;outline:none}
+.vol-slider{width:80px;height:3px;appearance:none;-webkit-appearance:none;background:var(--bg4);border-radius:2px;outline:none}
 .vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:var(--text2);cursor:pointer}
 
 .drop-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
@@ -203,9 +203,6 @@ html,body{
 .form-input:focus{border-color:var(--accent)}
 .file-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text1);padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;font-family:'Barlow',sans-serif;width:100%;text-align:left}
 .file-btn:hover{border-color:var(--accent)}
-.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-top:6px}
-.emoji-opt{font-size:20px;padding:4px;border-radius:4px;cursor:pointer;text-align:center;transition:background .1s;border:1px solid transparent}
-.emoji-opt:hover,.emoji-opt.selected{background:var(--bg4);border-color:var(--accent)}
 .modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
 .btn-cancel{background:none;border:1px solid var(--border);color:var(--text2);padding:8px 16px;border-radius:4px;font-size:13px;cursor:pointer}
 .btn-save{background:var(--accent);color:#0d0f14;border:none;padding:8px 16px;border-radius:4px;font-size:13px;font-weight:600;cursor:pointer}

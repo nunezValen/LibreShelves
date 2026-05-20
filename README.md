@@ -56,10 +56,17 @@ npm start
 
 ---
 
-## Build EXE
 
-```bash
-npx electron-builder
-```
+# Imagenes
 
----
+## Home
+
+![alt text](imagenes-readme/app.png)
+
+## Reproductor
+
+![alt text](imagenes-readme/reproductor.png)
+
+## Agregar libros
+
+![alt text](imagenes-readme/Agregar.png)

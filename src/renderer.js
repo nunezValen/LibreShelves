@@ -1,10 +1,13 @@
-const EMOJIS = ['📚','🗡️','🔮','🌌','🏰','🧪','🐉','🕵️','❤️','🌿','⚔️','🎭','🧠','🌊','🔥','🎶','🪐','🏛️','🧬','🦁'];
 const SPEEDS = [0.75,1,1.25,1.5,1.75,2];
 let books = [], currentBook = null, speedIdx = 1, layout = 'grid', currentView = 'library', seeking = false;
 const audio = document.getElementById('audio-el');
 
 function toFileUrl(filePath){
   return encodeURI(`file:///${filePath.replace(/\\/g, '/')}`);
+}
+
+function defaultCoverMarkup(size = 28){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`;
 }
 
 async function checkFileExists(filePath){
@@ -15,12 +18,15 @@ async function checkFileExists(filePath){
 
 function load(){
   try { books = JSON.parse(localStorage.getItem('audioshelf_books')||'[]'); } catch(e){ books=[]; }
-  books = books.map(b=>({...b, filePath: b.filePath || null, missingFile: false, chapters: b.chapters || []}));
+  books = books.map(b=>{
+    const { emoji, ...rest } = b;
+    return {...rest, filePath: b.filePath || null, missingFile: false, chapters: b.chapters || []};
+  });
 }
 
 function save(){
   const toSave = books.map(b=>{
-    const {missingFile,...rest} = b;
+    const {missingFile, emoji, ...rest} = b;
     return rest;
   });
   localStorage.setItem('audioshelf_books', JSON.stringify(toSave));
@@ -173,7 +179,7 @@ function renderBooks(){
 function cardHTML(b){
   const p=pct(b);
   const isPlaying = currentBook && currentBook.id===b.id;
-  const coverContent = b.coverPath ? `<img class="book-cover-img" src="${toFileUrl(b.coverPath)}" onerror="this.style.display='none'">` : `<div class="book-cover-placeholder">${b.emoji||'📚'}</div>`;
+  const coverContent = b.coverPath ? `<img class="book-cover-img" src="${toFileUrl(b.coverPath)}" onerror="this.style.display='none'">` : `<div class="book-cover-placeholder">${defaultCoverMarkup(54)}</div>`;
 
   return `<div class="book-card" onclick="selectBook('${b.id}')" oncontextmenu="openCardMenu('${b.id}', event); return false;">
     <div class="book-cover-wrap">
@@ -204,7 +210,7 @@ function rowHTML(b,i){
   const isPlaying = currentBook && currentBook.id===b.id;
   return `<div class="book-row${isPlaying?' playing':''}" onclick="selectBook('${b.id}')">
     <div class="book-row-num">${i+1}</div>
-    <div class="book-row-cover">${b.emoji||'📚'}</div>
+    <div class="book-row-cover">${defaultCoverMarkup(22)}</div>
     <div class="book-row-info">
       <div class="book-row-title">${b.title}</div>
       <div class="book-row-author">${b.author||''}</div>
@@ -351,7 +357,7 @@ function updatePlayerUI(){
   if(b.coverPath){
     cover.innerHTML = `<img src="${toFileUrl(b.coverPath)}" style="width:100%;height:100%;object-fit:cover">`;
   } else {
-    cover.innerHTML = b.emoji||'🎧';
+    cover.innerHTML = defaultCoverMarkup(28);
   }
 
   const heroArea=document.getElementById('hero-area');
@@ -361,10 +367,8 @@ function updatePlayerUI(){
   const heroCover=document.getElementById('hero-cover');
   if(b.coverPath){
     heroCover.innerHTML = `<img src="${toFileUrl(b.coverPath)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`;
-    heroCover.className='hero-cover-wrap';
   } else {
-    heroCover.innerHTML=b.emoji||'🎧';
-    heroCover.className='hero-cover-placeholder';
+    heroCover.innerHTML=defaultCoverMarkup(44);
   }
   renderBooks();
 }
@@ -446,7 +450,7 @@ audio.addEventListener('ended',()=>{
   }
 });
 
-let selectedEmoji='📚', pendingFile=null;
+let pendingFile=null;
 let pendingCoverFile = null;
 let selectedEditBookId = null;
 let pendingEditCoverFile = null;
@@ -454,8 +458,6 @@ let pendingEditCueFile = null;
 
 function openAddModal(){
   document.getElementById('add-modal').classList.add('active');
-  const grid=document.getElementById('emoji-grid');
-  grid.innerHTML=EMOJIS.map(e=>`<div class="emoji-opt${e===selectedEmoji?' selected':''}" onclick="pickEmoji('${e}',this)">${e}</div>`).join('');
 }
 
 function openEditModal(id, event){
@@ -536,13 +538,6 @@ function closeModal(){
   document.getElementById('cover-label').textContent='🖼️ Elegir portada...';
   document.getElementById('inp-title').value='';
   document.getElementById('inp-author').value='';
-  // genre input removed
-}
-
-function pickEmoji(e,el){
-  selectedEmoji=e;
-  document.querySelectorAll('.emoji-opt').forEach(x=>x.classList.remove('selected'));
-  el.classList.add('selected');
 }
 
 function onFileSelect(input){
@@ -644,7 +639,6 @@ async function saveBook(){
   const b={
     id, title,
     author:document.getElementById('inp-author').value.trim(),
-    emoji:selectedEmoji,
     position:0,
     duration:0,
     finished:false,
